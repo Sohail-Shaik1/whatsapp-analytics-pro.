@@ -27,121 +27,49 @@ st.set_page_config(
 # PINK AND WHITE THEME
 # =====================================================
 
-st.markdown("""
-<style>
+# MAIN HEADER
 
-.stApp {
-    background: #fff5f9;
-    color: #4a1830;
-}
+st.markdown(
+    """
+    <div style="
+        background: linear-gradient(135deg, #FF0000, #B30000);
+        padding: 35px;
+        border-radius: 20px;
+        margin-bottom: 25px;
+        text-align: center;
+    ">
 
-[data-testid="stHeader"] {
-    background: #fff5f9;
-}
+        <div style="
+            color: #FFFFFF;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 3px;
+        ">
+            CONVERSATION INTELLIGENCE · INTERACTIVE DASHBOARD
+        </div>
 
-.block-container {
-    max-width: 1500px;
-    padding-top: 1.5rem;
-    padding-bottom: 3rem;
-}
+        <h1 style="
+            color: #FFFFFF;
+            font-size: 38px;
+            font-weight: 900;
+            margin: 15px 0;
+        ">
+            💬 WhatsApp Analytics Pro
+        </h1>
 
-h1, h2, h3, h4, p, label {
-    color: #4a1830;
-}
+        <p style="
+            color: #FFFFFF;
+            font-size: 16px;
+            margin-bottom: 0;
+        ">
+            Discover the people, patterns and moments
+            behind your conversations.
+        </p>
 
-.hero {
-    background: linear-gradient(120deg, #ffffff, #ffe0ec);
-    border: 1px solid #f3bfd4;
-    border-radius: 22px;
-    padding: 30px;
-    margin-bottom: 20px;
-    box-shadow: 0 8px 28px rgba(192, 38, 112, 0.08);
-}
-
-.eyebrow {
-    color: #c02670;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 2px;
-}
-
-.hero-title {
-    font-size: 36px;
-    font-weight: 850;
-    margin: 8px 0;
-    color: #741943;
-}
-
-.hero-sub {
-    color: #95677d;
-    font-size: 16px;
-}
-
-.section-title {
-    font-size: 24px;
-    font-weight: 800;
-    margin-top: 28px;
-    margin-bottom: 15px;
-    color: #a51d60;
-}
-
-div[data-testid="stMetric"] {
-    background: white;
-    border: 1px solid #f2c5d8;
-    border-radius: 16px;
-    padding: 18px;
-    box-shadow: 0 4px 14px rgba(192, 38, 112, 0.06);
-}
-
-div[data-testid="stMetricLabel"] {
-    color: #95677d;
-}
-
-div[data-testid="stMetricValue"] {
-    color: #b42368;
-    font-weight: 800;
-}
-
-div[data-testid="stPlotlyChart"] {
-    background: white;
-    border: 1px solid #f2c5d8;
-    border-radius: 16px;
-    padding: 8px;
-}
-
-section[data-testid="stSidebar"] {
-    background: #ffe8f1;
-    border-right: 1px solid #f2c5d8;
-}
-
-section[data-testid="stSidebar"] * {
-    color: #5b2340;
-}
-
-div.stButton > button,
-div.stDownloadButton > button {
-    background: linear-gradient(90deg, #e83e8c, #c02670);
-    color: white;
-    border: 0;
-    border-radius: 11px;
-    font-weight: 700;
-}
-
-div.stButton > button:hover,
-div.stDownloadButton > button:hover {
-    background: #a51d60;
-    color: white;
-}
-
-.stTextInput input,
-.stDateInput input {
-    background: white;
-    border-radius: 10px;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # =====================================================
 # CHAT PARSING
