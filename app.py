@@ -1,19 +1,17 @@
-import io
-import re
-import zipfile
-from collections import Counter
 
-import emoji
+import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import streamlit as st
-from wordcloud import WordCloud, STOPWORDS
+import re
+import zipfile
+import io
+from collections import Counter
+from datetime import datetime
 
-
-# =====================================================
+# =========================================================
 # PAGE CONFIGURATION
-# =====================================================
+# =========================================================
 
 st.set_page_config(
     page_title="WhatsApp Analytics Pro",
@@ -22,1298 +20,1162 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# =========================================================
+# PURE RED THEME
+# =========================================================
 
-# =====================================================
-# PINK AND WHITE THEME
-# =====================================================
+st.markdown("""
+<style>
 
-# MAIN HEADER
+/* Main background */
+.stApp {
+    background-color: #FFFFFF;
+    color: #222222;
+}
 
-st.markdown(
-    """
-    <div style="
-        background: linear-gradient(135deg, #FF0000, #B30000);
-        padding: 35px;
-        border-radius: 20px;
-        margin-bottom: 25px;
-        text-align: center;
-    ">
+/* Main content */
+.block-container {
+    padding-top: 1.5rem;
+    padding-bottom: 3rem;
+}
 
-        <div style="
-            color: #FFFFFF;
-            font-size: 13px;
-            font-weight: bold;
-            letter-spacing: 3px;
-        ">
-            CONVERSATION INTELLIGENCE · INTERACTIVE DASHBOARD
-        </div>
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background: #FFF5F5;
+    border-right: 2px solid #FF0000;
+}
 
-        <h1 style="
-            color: #FFFFFF;
-            font-size: 38px;
-            font-weight: 900;
-            margin: 15px 0;
-        ">
-            💬 WhatsApp Analytics Pro
-        </h1>
+/* Main headings */
+h1, h2, h3 {
+    color: #CC0000 !important;
+    font-weight: 800 !important;
+}
 
-        <p style="
-            color: #FFFFFF;
-            font-size: 16px;
-            margin-bottom: 0;
-        ">
-            Discover the people, patterns and moments
-            behind your conversations.
-        </p>
+/* Normal text */
+p, label, span {
+    color: #333333;
+}
 
+/* Buttons */
+.stButton > button {
+    background: #FF0000 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-weight: bold !important;
+    padding: 10px 22px !important;
+}
+
+.stButton > button:hover {
+    background: #CC0000 !important;
+    color: white !important;
+}
+
+/* Download buttons */
+.stDownloadButton > button {
+    background: #FF0000 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 9px !important;
+}
+
+/* Input fields */
+.stTextInput input,
+.stDateInput input,
+.stSelectbox div[data-baseweb="select"] {
+    background: #FFFFFF !important;
+    border: 1px solid #FF9999 !important;
+    border-radius: 8px !important;
+}
+
+/* File uploader */
+[data-testid="stFileUploader"] {
+    background: #FFF5F5;
+    border: 2px dashed #FF0000;
+    border-radius: 12px;
+    padding: 15px;
+}
+
+/* Metric cards */
+[data-testid="stMetric"] {
+    background: #FFF3F3;
+    border: 1px solid #FFCCCC;
+    padding: 18px;
+    border-radius: 12px;
+}
+
+[data-testid="stMetricLabel"] {
+    color: #990000 !important;
+    font-weight: bold !important;
+}
+
+[data-testid="stMetricValue"] {
+    color: #FF0000 !important;
+    font-weight: 900 !important;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab"] {
+    color: #990000;
+    font-weight: bold;
+}
+
+.stTabs [aria-selected="true"] {
+    color: #FF0000 !important;
+    border-bottom-color: #FF0000 !important;
+}
+
+/* Dataframes */
+[data-testid="stDataFrame"] {
+    border: 1px solid #FFCCCC;
+    border-radius: 10px;
+}
+
+/* Header */
+.hero {
+    background: linear-gradient(135deg, #FF0000, #B30000);
+    padding: 35px 25px;
+    border-radius: 18px;
+    text-align: center;
+    margin-bottom: 25px;
+    box-shadow: 0 5px 18px rgba(255, 0, 0, 0.18);
+}
+
+.hero h1 {
+    color: white !important;
+    font-size: 38px !important;
+    margin: 12px 0;
+}
+
+.hero p {
+    color: white !important;
+    font-size: 16px;
+    margin-bottom: 0;
+}
+
+.hero-label {
+    color: white;
+    letter-spacing: 3px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Section headings */
+.section-title {
+    color: #CC0000;
+    font-size: 22px;
+    font-weight: 800;
+    border-left: 5px solid #FF0000;
+    padding-left: 12px;
+    margin-top: 25px;
+    margin-bottom: 15px;
+}
+
+/* Info cards */
+.info-card {
+    background: #FFF5F5;
+    border: 1px solid #FFCCCC;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 12px;
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    color: #990000;
+    padding: 25px;
+    border-top: 1px solid #FFCCCC;
+    margin-top: 40px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+
+# =========================================================
+# HERO HEADER
+# =========================================================
+
+st.markdown("""
+<div class="hero">
+    <div class="hero-label">
+        CONVERSATION INTELLIGENCE · INTERACTIVE DASHBOARD
     </div>
-    """,
-    unsafe_allow_html=True
-)
 
-# =====================================================
-# CHAT PARSING
-# =====================================================
+    <h1>💬 WhatsApp Analytics Pro</h1>
 
-TIMESTAMP_PATTERNS = [
+    <p>
+        Discover the people, patterns and moments
+        behind your conversations.
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
-    re.compile(
-        r"^\[(\d{1,2}[/-]\d{1,2}[/-]\d{2,4},\s*\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?)\]\s?(.*)$",
-        re.I
-    ),
 
-    re.compile(
-        r"^(\d{1,2}[/-]\d{1,2}[/-]\d{2,4},\s*\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?)\s-\s(.*)$",
-        re.I
-    ),
-
-    re.compile(
-        r"^(\d{4}-\d{1,2}-\d{1,2},\s*\d{1,2}:\d{2}(?::\d{2})?)\s-\s(.*)$",
-        re.I
-    )
-
-]
+# =========================================================
+# CONSTANTS
+# =========================================================
 
 MEDIA_RE = re.compile(
-    r"<(?:media|image|video|audio|document|sticker|gif|voice message|attached):?\s*omitted>|<attached:[^>]+>",
-    re.I
+    r"<media omitted>|<image omitted>|<video omitted>|"
+    r"<audio omitted>|<document omitted>|<sticker omitted>|"
+    r"<gif omitted>|<attached:[^>]+>|"
+    r"\bfile attached\b",
+    re.IGNORECASE
 )
 
-URL_RE = re.compile(r"(?:https?://|www\.)\S+", re.I)
+LINK_RE = re.compile(r"https?://\S+|www\.\S+", re.IGNORECASE)
 
-WORD_RE = re.compile(
-    r"[A-Za-z0-9]+(?:['’][A-Za-z0-9]+)*|[\u0900-\u097F]+"
-)
+WORD_RE = re.compile(r"\b[\w']+\b", re.UNICODE)
+
+STOP_WORDS = {
+    "the", "and", "you", "are", "for", "that", "this",
+    "with", "have", "was", "but", "not", "your", "what",
+    "when", "where", "how", "why", "from", "they", "them",
+    "then", "there", "their", "will", "would", "could",
+    "should", "can", "all", "just", "like", "its", "it's",
+    "our", "out", "get", "got", "has", "had", "his", "her",
+    "she", "him", "who", "one", "yes", "yeah", "okay",
+    "ok", "bro", "lol", "hmm", "oh", "in", "on", "to",
+    "of", "is", "it", "a", "an", "i", "me", "my", "we",
+    "be", "do", "so", "if", "or", "at", "as", "by"
+}
 
 
-# =====================================================
+# =========================================================
 # READ TXT OR ZIP FILE
-# =====================================================
+# =========================================================
 
-def read_chat(uploaded):
+def read_chat(uploaded_file):
 
-    raw = uploaded.getvalue()
+    file_name = uploaded_file.name.lower()
 
-    if uploaded.name.lower().endswith(".zip"):
+    if file_name.endswith(".zip"):
 
-        with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+        with zipfile.ZipFile(uploaded_file) as archive:
 
-            names = [
-                n for n in zf.namelist()
-                if n.lower().endswith(".txt") and not n.endswith("/")
+            txt_files = [
+                name for name in archive.namelist()
+                if name.lower().endswith(".txt")
+                and not name.startswith("__MACOSX/")
             ]
 
-            if not names:
-                raise ValueError(
-                    "No TXT chat file found inside ZIP."
-                )
+            if not txt_files:
+                raise ValueError("No TXT file found inside ZIP.")
 
-            preferred = [
-                n for n in names
-                if n.rsplit("/", 1)[-1].lower()
-                in ("chat.txt", "_chat.txt")
-            ]
+            # Prefer the first TXT file
+            raw_bytes = archive.read(txt_files[0])
 
-            chosen = (
-                preferred[0]
-                if preferred
-                else max(names, key=lambda n: zf.getinfo(n).file_size)
-            )
+    else:
+        raw_bytes = uploaded_file.getvalue()
 
-            raw = zf.read(chosen)
-
-    for encoding in (
+    encodings = [
         "utf-8-sig",
         "utf-8",
         "utf-16",
-        "cp1252"
-    ):
+        "utf-16-le",
+        "cp1252",
+        "latin-1"
+    ]
 
+    for encoding in encodings:
         try:
-            return raw.decode(encoding)
-
+            return raw_bytes.decode(encoding)
         except UnicodeDecodeError:
             continue
 
-    return raw.decode("utf-8", errors="replace")
+    raise ValueError("Unable to decode this chat file.")
 
 
-# =====================================================
-# SPLIT USER AND MESSAGE
-# =====================================================
+# =========================================================
+# WHATSAPP MESSAGE PARSING
+# =========================================================
+
+TIMESTAMP_PATTERNS = [
+
+    # Android: [10/4/26, 6:20:58 PM] Name: message
+    re.compile(
+        r"^\[(\d{1,2}/\d{1,2}/\d{2,4},\s*"
+        r"\d{1,2}:\d{2}(?::\d{2})?\s*[APMapm]{0,2})\]\s?(.*)$"
+    ),
+
+    # iPhone: 10/4/26, 6:20 PM - Name: message
+    re.compile(
+        r"^(\d{1,2}/\d{1,2}/\d{2,4},\s*"
+        r"\d{1,2}:\d{2}(?::\d{2})?\s*[APMapm]{0,2})\s-\s(.*)$"
+    ),
+
+    # ISO-style: [2026-10-04, 18:20:58] Name: message
+    re.compile(
+        r"^\[(\d{4}-\d{1,2}-\d{1,2},?\s*"
+        r"\d{1,2}:\d{2}(?::\d{2})?)\]\s?(.*)$"
+    ),
+
+    # ISO-style without brackets
+    re.compile(
+        r"^(\d{4}-\d{1,2}-\d{1,2},?\s*"
+        r"\d{1,2}:\d{2}(?::\d{2})?)\s-\s(.*)$"
+    )
+]
+
 
 def split_sender(body):
 
-    first = body.split("\n", 1)[0]
+    if ": " in body:
 
-    if ": " in first:
-
-        sender, first_text = first.split(": ", 1)
+        sender, message = body.split(": ", 1)
 
         sender = sender.strip()
 
-        if (
-            0 < len(sender) <= 70
-            and not sender.lower().startswith(("http", "www"))
-        ):
+        # Avoid treating a long notification as a sender
+        if sender and len(sender) <= 100:
+            return sender, message.strip()
 
-            rest = body.split("\n", 1)
+    return "Group Notification", body.strip()
 
-            text = first_text + (
-                "\n" + rest[1]
-                if len(rest) > 1
-                else ""
-            )
-
-            return sender, text
-
-    return "Group Notification", body
-
-
-# =====================================================
-# PARSE WHATSAPP CHAT
-# =====================================================
 
 def parse_chat(raw_text, dayfirst=False):
 
     rows = []
-
-    current_dt = None
-    current_body = None
+    current_message = None
 
     for line in raw_text.splitlines():
 
-        match = None
+        matched = False
 
         for pattern in TIMESTAMP_PATTERNS:
 
             match = pattern.match(line)
 
             if match:
+
+                matched = True
+
+                if current_message:
+                    rows.append(current_message)
+
+                timestamp_text = match.group(1).strip()
+                body = match.group(2).strip()
+
+                user, message = split_sender(body)
+
+                current_message = {
+                    "timestamp_text": timestamp_text,
+                    "user": user,
+                    "message": message
+                }
+
                 break
 
-        if match:
+        # Multiline messages
+        if not matched and current_message:
 
-            if current_dt is not None:
+            current_message["message"] += "\n" + line
 
-                rows.append(
-                    (current_dt, current_body or "")
-                )
-
-            current_dt = match.group(1).strip()
-            current_body = match.group(2).strip()
-
-        elif current_dt is not None:
-
-            current_body += "\n" + line
-
-    if current_dt is not None:
-
-        rows.append(
-            (current_dt, current_body or "")
-        )
+    if current_message:
+        rows.append(current_message)
 
     if not rows:
-
         raise ValueError(
-            "No WhatsApp timestamps detected. Upload the original exported chat TXT or ZIP."
+            "No WhatsApp messages detected. "
+            "Please upload a standard WhatsApp TXT export."
         )
 
-    df = pd.DataFrame(
-        rows,
-        columns=["date_raw", "raw_message"]
-    )
+    df = pd.DataFrame(rows)
 
-    df["date"] = pd.to_datetime(
-        df["date_raw"],
+    # Convert timestamp
+    df["date_time"] = pd.to_datetime(
+        df["timestamp_text"],
         dayfirst=dayfirst,
         errors="coerce",
         format="mixed"
     )
 
-    df = df.dropna(subset=["date"]).copy()
+    df = df.dropna(subset=["date_time"]).copy()
 
     if df.empty:
+        raise ValueError("Could not understand the date format.")
 
-        raise ValueError(
-            "Messages found, but dates could not be interpreted."
-        )
+    # Date and time columns
+    df["date"] = df["date_time"].dt.date
+    df["year"] = df["date_time"].dt.year
+    df["month"] = df["date_time"].dt.month
+    df["month_name"] = df["date_time"].dt.strftime("%B")
+    df["month_period"] = df["date_time"].dt.to_period("M").astype(str)
+    df["day"] = df["date_time"].dt.day
+    df["hour"] = df["date_time"].dt.hour
+    df["minute"] = df["date_time"].dt.minute
+    df["weekday"] = df["date_time"].dt.day_name()
+    df["weekday_number"] = df["date_time"].dt.dayofweek
 
-    split = df["raw_message"].apply(split_sender)
-
-    df["user"] = split.map(lambda x: x[0])
-    df["message"] = split.map(lambda x: x[1])
-
-    forwarded = df["message"].str.match(
-        r"^\s*\[(?:Forwarded|Forward)\]",
-        case=False,
-        na=False
-    )
-
-    df["message_type"] = forwarded.map({
-        True: "Forwarded",
-        False: "Normal"
-    })
-
-    df["message"] = df["message"].str.replace(
-        r"^\s*\[(?:Forwarded|Forward)\]\s*",
-        "",
-        regex=True,
-        case=False
-    )
-
-    df["message"] = df["message"].str.replace(
-        r"^\s*Forwarded(?:\s+many\s+times)?\s*:\s*",
-        "",
-        regex=True,
-        case=False
-    )
-
-    df["year"] = df["date"].dt.year
-    df["month"] = df["date"].dt.month_name()
-    df["month_period"] = df["date"].dt.to_period("M").astype(str)
-    df["day"] = df["date"].dt.day
-    df["hour"] = df["date"].dt.hour
-    df["minute"] = df["date"].dt.minute
-    df["seconds"] = df["date"].dt.second
-    df["weekday"] = df["date"].dt.day_name()
+    # Message analysis
+    df["message"] = df["message"].fillna("").astype(str)
 
     df["word_count"] = df["message"].apply(
-        lambda x: len(WORD_RE.findall(x or ""))
+        lambda x: len(WORD_RE.findall(x))
     )
 
     df["media_count"] = df["message"].apply(
-        lambda x: int(bool(MEDIA_RE.search(x or "")))
+        lambda x: len(MEDIA_RE.findall(x))
     )
 
     df["link_count"] = df["message"].apply(
-        lambda x: len(URL_RE.findall(x or ""))
+        lambda x: len(LINK_RE.findall(x))
     )
 
-    return df.sort_values("date").reset_index(drop=True)
-
-
-# =====================================================
-# WORD AND EMOJI ANALYSIS
-# =====================================================
-
-STOP_WORDS = set(STOPWORDS) | {
-    "https", "http", "www", "com",
-    "omitted", "media", "okay", "ok",
-    "yeah", "yes", "no", "bro",
-    "hmm", "hai", "hi", "hello"
-}
-
-
-def get_words(df):
-
-    words = []
-
-    for message in df["message"].fillna(""):
-
-        words.extend(
-            w.lower()
-            for w in WORD_RE.findall(message)
-        )
-
-    return [
-        w for w in words
-        if len(w) > 1 and w not in STOP_WORDS
-    ]
-
-
-def get_emoji_counts(df):
-
-    counts = Counter()
-
-    for message in df["message"].fillna(""):
-
-        counts.update(
-            x["emoji"]
-            for x in emoji.emoji_list(message)
-        )
-
-    return counts
-
-
-# =====================================================
-# CHART STYLE
-# =====================================================
-
-def style_chart(fig):
-
-    fig.update_layout(
-
-        template="plotly_white",
-
-        paper_bgcolor="rgba(0,0,0,0)",
-
-        plot_bgcolor="rgba(0,0,0,0)",
-
-        font=dict(
-            family="Arial",
-            size=12,
-            color="#5b2340"
+    df["message_type"] = df.apply(
+        lambda row: (
+            "Media" if row["media_count"] > 0
+            else "Text"
         ),
-
-        margin=dict(
-            l=12,
-            r=12,
-            t=55,
-            b=15
-        ),
-
-        hovermode="x unified",
-
-        legend_title_text=""
-
+        axis=1
     )
 
-    return fig
+    return df
 
 
-def show_chart(fig, height=None):
+# =========================================================
+# WORD ANALYSIS
+# =========================================================
 
-    if height:
-        fig.update_layout(height=height)
+def get_common_words(messages):
 
-    fig = style_chart(fig)
+    all_words = []
 
-    st.plotly_chart(
-        fig,
-        use_container_width=True,
-        config={"displayModeBar": True}
-    )
+    for message in messages:
 
+        words = WORD_RE.findall(str(message).lower())
 
-# =====================================================
-# WEEKLY ACTIVITY HEATMAP
-# =====================================================
+        for word in words:
 
-def render_heatmap(df):
-
-    daily = (
-        df.groupby(df["date"].dt.date)
-        .size()
-        .rename("Messages")
-        .reset_index()
-    )
-
-    daily.columns = ["Date", "Messages"]
-
-    if daily.empty:
-        st.info("No activity found.")
-        return
-
-    daily["Date"] = pd.to_datetime(daily["Date"])
-
-    first_monday = (
-        daily["Date"].min()
-        - pd.to_timedelta(
-            daily["Date"].min().weekday(),
-            unit="D"
-        )
-    )
-
-    daily["Week"] = (
-        (daily["Date"] - first_monday).dt.days // 7
-    ) + 1
-
-    daily["Weekday"] = daily["Date"].dt.day_name()
-
-    order = [
-        "Monday", "Tuesday", "Wednesday",
-        "Thursday", "Friday", "Saturday", "Sunday"
-    ]
-
-    pivot = daily.pivot_table(
-        index="Weekday",
-        columns="Week",
-        values="Messages",
-        aggfunc="sum",
-        fill_value=0
-    )
-
-    pivot = pivot.reindex(order)
-
-    fig = go.Figure(
-        go.Heatmap(
-            z=pivot.values,
-            x=[f"Week {int(c)}" for c in pivot.columns],
-            y=pivot.index,
-
-            colorscale=[
-                [0, "#fff0f6"],
-                [0.35, "#f9a8d4"],
-                [0.7, "#ec4899"],
-                [1, "#9d174d"]
-            ],
-
-            hovertemplate=(
-                "%{y} · %{x}<br>"
-                "Messages: %{z}<extra></extra>"
-            ),
-
-            colorbar=dict(title="Messages")
-        )
-    )
-
-    fig.update_layout(
-        title="Weekly activity map",
-        height=340
-    )
-
-    show_chart(fig)
-
-
-# =====================================================
-# WORD CLOUD
-# =====================================================
-
-def render_wordcloud(words):
-
-    if not words:
-
-        st.info(
-            "Not enough words to generate a word cloud."
-        )
-
-        return
-
-    cloud = WordCloud(
-        width=1400,
-        height=520,
-        background_color="white",
-        colormap="RdPu",
-        stopwords=STOP_WORDS,
-        collocations=False,
-        max_words=120,
-        prefer_horizontal=0.9
-    ).generate(" ".join(words))
-
-    st.image(
-        cloud.to_array(),
-        use_container_width=True
-    )
-
-
-# =====================================================
-# SIDEBAR
-# =====================================================
-
-with st.sidebar:
-
-    st.markdown("## 💬 WhatsApp Analytics")
-
-    st.caption(
-        "Conversation intelligence dashboard"
-    )
-
-    uploaded = st.file_uploader(
-        "Upload WhatsApp chat",
-        type=["txt", "zip"]
-    )
-
-    dayfirst = st.checkbox(
-        "Use day/month/year date format",
-        value=True
-    )
-
-    analyze = st.button(
-        "🚀 Analyze chat",
-        type="primary",
-        use_container_width=True
-    )
-
-    if "chat_df" not in st.session_state:
-
-        st.markdown("---")
-
-        st.caption(
-            "Upload a WhatsApp TXT or ZIP export to explore messages, activity, people, words and emojis."
-        )
-
-    else:
-
-        st.markdown("---")
-
-        st.success(
-            f"Loaded: {st.session_state.get('chat_name', 'WhatsApp chat')}"
-        )
-
-        if st.button(
-            "Clear current chat",
-            use_container_width=True
-        ):
-
-            st.session_state.pop("chat_df", None)
-            st.session_state.pop("chat_name", None)
-
-            st.rerun()
-
-
-# =====================================================
-# ANALYZE UPLOADED CHAT
-# =====================================================
-
-if analyze:
-
-    if uploaded is None:
-
-        st.sidebar.warning(
-            "Choose a TXT or ZIP file first."
-        )
-
-    else:
-
-        try:
-
-            with st.spinner(
-                "Analyzing your WhatsApp conversation..."
+            if (
+                len(word) > 2
+                and word not in STOP_WORDS
+                and not word.isdigit()
             ):
+                all_words.append(word)
 
-                st.session_state["chat_df"] = parse_chat(
-                    read_chat(uploaded),
-                    dayfirst=dayfirst
-                )
-
-                st.session_state["chat_name"] = uploaded.name
-
-            st.rerun()
-
-        except Exception as exc:
-
-            st.sidebar.error(str(exc))
+    return Counter(all_words).most_common(15)
 
 
-# =====================================================
-# MAIN HEADER
-# =====================================================
+# =========================================================
+# SIDEBAR
+# =========================================================
 
-st.markdown("""
-<div class="hero">
-
-    <div class="eyebrow">
-        CONVERSATION INTELLIGENCE · INTERACTIVE DASHBOARD
-    </div>
-
-    <div class="hero-title">
-        💬 WhatsApp Analytics Pro
-    </div>
-
-    <p class="hero-sub">
-        Discover the people, patterns and moments
-        behind your conversations.
-    </p>
-
-</div>
-""", unsafe_allow_html=True)
-
-
-if "chat_df" not in st.session_state:
-
-    st.info(
-        "Upload your WhatsApp exported TXT or ZIP file from the left sidebar, then click Analyze chat."
-    )
-
-    st.markdown("""
-    **Your dashboard includes:**
-
-    - Message statistics
-    - Monthly and daily timelines
-    - Activity heatmaps
-    - Participant rankings
-    - Word cloud
-    - Common words
-    - Emoji insights
-    """)
-
-    st.stop()
-
-
-full_df = st.session_state["chat_df"].copy()
-
-
-# =====================================================
-# FILTERS
-# =====================================================
-
-st.markdown(
-    '<div class="section-title">🎛️ Explore your conversation</div>',
+st.sidebar.markdown(
+    "<h2 style='color:#FF0000;'>💬 WhatsApp Pro</h2>",
     unsafe_allow_html=True
 )
 
-users = sorted(
-    full_df.loc[
-        full_df["user"] != "Group Notification",
-        "user"
-    ].dropna().unique()
+st.sidebar.markdown("---")
+
+st.sidebar.markdown("### 📁 Upload Your Chat")
+
+uploaded_file = st.sidebar.file_uploader(
+    "Upload WhatsApp TXT or ZIP",
+    type=["txt", "zip"]
 )
 
-f1, f2, f3 = st.columns([1.5, 1, 1])
+dayfirst = st.sidebar.checkbox(
+    "My date format is DD/MM/YYYY",
+    value=False
+)
 
-with f1:
+if "chat_df" not in st.session_state:
+    st.session_state.chat_df = None
 
-    selected_user = st.selectbox(
-        "Show analysis for",
-        ["Overall Group"] + users
+if uploaded_file:
+
+    if st.sidebar.button(
+        "🚀 ANALYZE CHAT",
+        use_container_width=True
+    ):
+
+        try:
+
+            with st.spinner("Analyzing your WhatsApp conversation..."):
+
+                raw_text = read_chat(uploaded_file)
+
+                parsed_df = parse_chat(
+                    raw_text,
+                    dayfirst=dayfirst
+                )
+
+                st.session_state.chat_df = parsed_df
+
+            st.sidebar.success("Chat analyzed successfully!")
+
+        except Exception as error:
+
+            st.sidebar.error(str(error))
+
+
+# =========================================================
+# CHECK DATA
+# =========================================================
+
+if st.session_state.chat_df is None:
+
+    st.info(
+        "👈 Upload your WhatsApp exported TXT or ZIP file "
+        "from the sidebar and click ANALYZE CHAT."
     )
 
-with f2:
+    st.markdown("### ✨ What you can explore")
 
-    min_date = full_df["date"].min().date()
-    max_date = full_df["date"].max().date()
+    col1, col2, col3 = st.columns(3)
 
-    start_date = st.date_input(
-        "From date",
-        value=min_date,
-        min_value=min_date,
-        max_value=max_date
-    )
+    with col1:
+        st.markdown("""
+        <div class="info-card">
+            <h3>📊 Statistics</h3>
+            Messages, words, media, links and participants.
+        </div>
+        """, unsafe_allow_html=True)
 
-with f3:
+    with col2:
+        st.markdown("""
+        <div class="info-card">
+            <h3>📈 Activity</h3>
+            Monthly, daily and hourly conversation patterns.
+        </div>
+        """, unsafe_allow_html=True)
 
-    end_date = st.date_input(
-        "To date",
-        value=max_date,
-        min_value=min_date,
-        max_value=max_date
-    )
-
-
-if start_date > end_date:
-
-    st.error(
-        "The start date must be before or equal to the end date."
-    )
+    with col3:
+        st.markdown("""
+        <div class="info-card">
+            <h3>👥 People</h3>
+            Most active members and individual analysis.
+        </div>
+        """, unsafe_allow_html=True)
 
     st.stop()
 
 
-filtered = full_df[
-    (full_df["date"].dt.date >= start_date)
-    &
-    (full_df["date"].dt.date <= end_date)
-].copy()
+# =========================================================
+# MAIN DATA
+# =========================================================
+
+df = st.session_state.chat_df.copy()
+
+# =========================================================
+# FILTERS
+# =========================================================
+
+st.markdown('<div class="section-title">🎯 Dashboard Filters</div>',
+            unsafe_allow_html=True)
+
+filter_col1, filter_col2 = st.columns(2)
+
+users = sorted(df["user"].unique().tolist())
+
+with filter_col1:
+
+    selected_user = st.selectbox(
+        "Select conversation",
+        ["Overall Chat"] + users
+    )
+
+with filter_col2:
+
+    date_range = st.date_input(
+        "Select date range",
+        value=(
+            df["date"].min(),
+            df["date"].max()
+        ),
+        min_value=df["date"].min(),
+        max_value=df["date"].max()
+    )
 
 
-if selected_user != "Overall Group":
+# Apply participant filter
+if selected_user == "Overall Chat":
+    filtered_df = df.copy()
+else:
+    filtered_df = df[df["user"] == selected_user].copy()
 
-    filtered = filtered[
-        filtered["user"] == selected_user
+
+# Apply date filter
+if isinstance(date_range, (tuple, list)) and len(date_range) == 2:
+
+    start_date, end_date = date_range
+
+    filtered_df = filtered_df[
+        (filtered_df["date"] >= start_date)
+        & (filtered_df["date"] <= end_date)
     ]
 
 
-if filtered.empty:
+if filtered_df.empty:
 
-    st.warning(
-        "No messages match the selected filters."
-    )
-
+    st.warning("No messages found for the selected filters.")
     st.stop()
 
 
-# =====================================================
+# =========================================================
 # TOP STATISTICS
-# =====================================================
+# =========================================================
 
 st.markdown(
     '<div class="section-title">📊 Top Statistics</div>',
     unsafe_allow_html=True
 )
 
-total_messages = len(filtered)
+total_messages = len(filtered_df)
 
-total_words = int(
-    filtered["word_count"].sum()
+total_words = int(filtered_df["word_count"].sum())
+
+total_media = int(filtered_df["media_count"].sum())
+
+total_links = int(filtered_df["link_count"].sum())
+
+total_participants = filtered_df["user"].nunique()
+
+average_words = (
+    round(total_words / total_messages, 2)
+    if total_messages else 0
 )
-
-media_shared = int(
-    filtered["media_count"].sum()
-)
-
-links_shared = int(
-    filtered["link_count"].sum()
-)
-
-participants = filtered.loc[
-    filtered["user"] != "Group Notification",
-    "user"
-].nunique()
-
 
 m1, m2, m3, m4, m5 = st.columns(5)
 
-m1.metric(
-    "💬 Total Messages",
-    f"{total_messages:,}"
+m1.metric("💬 Messages", f"{total_messages:,}")
+m2.metric("📝 Words", f"{total_words:,}")
+m3.metric("📷 Media", f"{total_media:,}")
+m4.metric("🔗 Links", f"{total_links:,}")
+m5.metric("👥 Participants", f"{total_participants:,}")
+
+st.caption(f"Average words per message: {average_words}")
+
+
+# =========================================================
+# NAVIGATION
+# =========================================================
+
+st.markdown("---")
+
+page = st.radio(
+    "Navigate Dashboard",
+    [
+        "Overview",
+        "Timeline",
+        "Activity Map",
+        "Participants",
+        "Words & Emojis",
+        "Message Explorer"
+    ],
+    horizontal=True,
+    label_visibility="collapsed"
 )
 
-m2.metric(
-    "🔤 Total Words",
-    f"{total_words:,}"
-)
-
-m3.metric(
-    "🖼️ Media Shared",
-    f"{media_shared:,}"
-)
-
-m4.metric(
-    "🔗 Links Shared",
-    f"{links_shared:,}"
-)
-
-m5.metric(
-    "👥 Participants",
-    f"{participants:,}"
-)
+st.markdown("---")
 
 
-# =====================================================
-# MONTHLY AND DAILY TIMELINES
-# =====================================================
+# =========================================================
+# OVERVIEW PAGE
+# =========================================================
 
-st.markdown(
-    '<div class="section-title">📈 Conversation Timeline</div>',
-    unsafe_allow_html=True
-)
+if page == "Overview":
 
-left, right = st.columns(2)
+    st.markdown(
+        '<div class="section-title">📈 Conversation Overview</div>',
+        unsafe_allow_html=True
+    )
 
-with left:
+    col1, col2 = st.columns(2)
+
+    # Message type
+    with col1:
+
+        type_counts = filtered_df["message_type"].value_counts()
+
+        fig = px.pie(
+            names=type_counts.index,
+            values=type_counts.values,
+            hole=0.55,
+            title="Message Type Distribution",
+            color_discrete_sequence=["#FF0000", "#FF9999"]
+        )
+
+        fig.update_layout(
+            template="plotly_white",
+            legend_title="Message Type"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    # Hourly activity
+    with col2:
+
+        hourly = (
+            filtered_df.groupby("hour")
+            .size()
+            .reset_index(name="messages")
+        )
+
+        fig = px.bar(
+            hourly,
+            x="hour",
+            y="messages",
+            title="Messages by Hour",
+            labels={
+                "hour": "Hour of Day",
+                "messages": "Messages"
+            },
+            color="messages",
+            color_continuous_scale=["#FFCCCC", "#FF0000"]
+        )
+
+        fig.update_layout(template="plotly_white")
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    # Busy day
+    st.markdown(
+        '<div class="section-title">🔥 Conversation Highlights</div>',
+        unsafe_allow_html=True
+    )
+
+    weekday_counts = (
+        filtered_df["weekday"]
+        .value_counts()
+        .reindex([
+            "Monday", "Tuesday", "Wednesday",
+            "Thursday", "Friday", "Saturday", "Sunday"
+        ])
+        .fillna(0)
+    )
+
+    busiest_day = weekday_counts.idxmax()
+
+    busiest_date = (
+        filtered_df["date"].value_counts().idxmax()
+    )
+
+    busiest_hour = (
+        filtered_df["hour"].value_counts().idxmax()
+    )
+
+    h1, h2, h3 = st.columns(3)
+
+    h1.metric("📅 Busiest Weekday", busiest_day)
+    h2.metric("🚀 Busiest Date", str(busiest_date))
+    h3.metric("⏰ Busiest Hour", f"{busiest_hour}:00")
+
+
+# =========================================================
+# TIMELINE PAGE
+# =========================================================
+
+elif page == "Timeline":
+
+    st.markdown(
+        '<div class="section-title">📅 Message Timeline</div>',
+        unsafe_allow_html=True
+    )
 
     monthly = (
-        filtered.set_index("date")
-        .resample("MS")
+        filtered_df.groupby("month_period")
         .size()
-        .rename("Messages")
-        .reset_index()
+        .reset_index(name="messages")
     )
 
-    monthly["Month"] = monthly["date"].dt.strftime(
-        "%b %Y"
-    )
-
-    fig = px.line(
+    fig = px.bar(
         monthly,
-        x="Month",
-        y="Messages",
-        markers=True,
-        title="Monthly Timeline"
+        x="month_period",
+        y="messages",
+        title="Monthly Message Activity",
+        text="messages",
+        color="messages",
+        color_continuous_scale=["#FFCCCC", "#FF0000"]
     )
 
-    fig.update_traces(
-        line=dict(color="#e83e8c", width=3),
-        marker=dict(size=8)
+    fig.update_layout(
+        template="plotly_white",
+        xaxis_title="Month",
+        yaxis_title="Messages"
     )
 
-    show_chart(fig, 370)
-
-
-with right:
+    st.plotly_chart(fig, use_container_width=True)
 
     daily = (
-        filtered.groupby(
-            filtered["date"].dt.date
-        )
+        filtered_df.groupby("date")
         .size()
-        .rename("Messages")
-        .reset_index()
+        .reset_index(name="messages")
     )
-
-    daily.columns = ["Date", "Messages"]
 
     fig = px.line(
         daily,
-        x="Date",
-        y="Messages",
-        markers=True,
-        title="Daily Timeline"
+        x="date",
+        y="messages",
+        title="Daily Message Timeline",
+        markers=True
     )
 
     fig.update_traces(
-        line=dict(color="#c02670", width=2)
+        line=dict(color="#FF0000", width=3),
+        marker=dict(color="#FF0000", size=7)
     )
 
-    show_chart(fig, 370)
+    fig.update_layout(template="plotly_white")
+
+    st.plotly_chart(fig, use_container_width=True)
 
 
-# =====================================================
-# ACTIVITY MAP
-# =====================================================
+# =========================================================
+# ACTIVITY MAP PAGE
+# =========================================================
 
-st.markdown(
-    '<div class="section-title">🗓️ Activity Map</div>',
-    unsafe_allow_html=True
-)
+elif page == "Activity Map":
 
-daily_counts = filtered.groupby(
-    filtered["date"].dt.date
-).size()
-
-monthly_counts = filtered.groupby(
-    filtered["date"].dt.to_period("M")
-).size()
-
-weekday_order = [
-    "Monday", "Tuesday", "Wednesday",
-    "Thursday", "Friday", "Saturday", "Sunday"
-]
-
-weekday_counts = (
-    filtered["weekday"]
-    .value_counts()
-    .reindex(weekday_order, fill_value=0)
-)
-
-
-a, b, c = st.columns(3)
-
-if not daily_counts.empty:
-
-    a.metric(
-        "🔥 Most Busy Day",
-        str(daily_counts.idxmax()),
-        f"{daily_counts.max():,} messages"
+    st.markdown(
+        '<div class="section-title">🗓️ Weekly Activity Map</div>',
+        unsafe_allow_html=True
     )
 
-if not monthly_counts.empty:
+    weekday_order = [
+        "Monday", "Tuesday", "Wednesday",
+        "Thursday", "Friday", "Saturday", "Sunday"
+    ]
 
-    b.metric(
-        "📅 Most Busy Month",
-        monthly_counts.idxmax().strftime("%B %Y"),
-        f"{monthly_counts.max():,} messages"
+    heatmap_data = (
+        filtered_df.pivot_table(
+            index="weekday",
+            columns="hour",
+            values="message",
+            aggfunc="count",
+            fill_value=0
+        )
+        .reindex(weekday_order)
     )
 
-if not weekday_counts.empty:
-
-    c.metric(
-        "⚡ Most Active Weekday",
-        weekday_counts.idxmax(),
-        f"{weekday_counts.max():,} messages"
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=heatmap_data.values,
+            x=heatmap_data.columns,
+            y=heatmap_data.index,
+            colorscale=[
+                [0, "#FFF0F0"],
+                [0.5, "#FF7777"],
+                [1, "#FF0000"]
+            ],
+            hoverongaps=False,
+            colorbar=dict(title="Messages")
+        )
     )
 
-
-# =====================================================
-# WEEKDAY AND MONTHLY CHARTS
-# =====================================================
-
-d1, d2 = st.columns(2)
-
-with d1:
-
-    weekday_df = (
-        weekday_counts
-        .rename_axis("Weekday")
-        .reset_index(name="Messages")
+    fig.update_layout(
+        title="Messages by Weekday and Hour",
+        xaxis_title="Hour of Day",
+        yaxis_title="Weekday",
+        template="plotly_white"
     )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Weekday chart
+    weekday_counts = (
+        filtered_df["weekday"]
+        .value_counts()
+        .reindex(weekday_order)
+        .fillna(0)
+        .reset_index()
+    )
+
+    weekday_counts.columns = ["weekday", "messages"]
 
     fig = px.bar(
-        weekday_df,
-        x="Weekday",
-        y="Messages",
-        title="Messages by Weekday",
-        color="Messages",
-        color_continuous_scale="RdPu"
+        weekday_counts,
+        x="weekday",
+        y="messages",
+        title="Activity by Weekday",
+        color="messages",
+        color_continuous_scale=["#FFCCCC", "#FF0000"]
     )
 
-    show_chart(fig, 340)
+    fig.update_layout(template="plotly_white")
+
+    st.plotly_chart(fig, use_container_width=True)
 
 
-with d2:
+# =========================================================
+# PARTICIPANTS PAGE
+# =========================================================
 
-    month_df = (
-        monthly_counts
-        .rename_axis("Month")
-        .reset_index(name="Messages")
+elif page == "Participants":
+
+    st.markdown(
+        '<div class="section-title">👥 Participant Analysis</div>',
+        unsafe_allow_html=True
     )
 
-    month_df["Month"] = (
-        month_df["Month"].dt.strftime("%b %Y")
+    user_counts = (
+        filtered_df["user"]
+        .value_counts()
+        .reset_index()
     )
+
+    user_counts.columns = ["Participant", "Messages"]
+
+    top_users = user_counts.head(15)
 
     fig = px.bar(
-        month_df,
-        x="Month",
-        y="Messages",
-        title="Messages by Month",
+        top_users.sort_values("Messages"),
+        x="Messages",
+        y="Participant",
+        orientation="h",
+        title="Most Active Participants",
         color="Messages",
-        color_continuous_scale="RdPu"
+        color_continuous_scale=["#FFCCCC", "#FF0000"]
     )
 
-    show_chart(fig, 340)
-
-
-# =====================================================
-# WEEKLY ACTIVITY HEATMAP
-# =====================================================
-
-st.markdown(
-    '<div class="section-title">🌡️ Weekly Activity Heatmap</div>',
-    unsafe_allow_html=True
-)
-
-render_heatmap(filtered)
-
-
-# =====================================================
-# HOUR AND WEEKDAY ACTIVITY
-# =====================================================
-
-hour_pivot = filtered.pivot_table(
-    index="weekday",
-    columns="hour",
-    values="message",
-    aggfunc="count",
-    fill_value=0
-)
-
-hour_pivot = (
-    hour_pivot
-    .reindex(weekday_order)
-    .reindex(columns=range(24), fill_value=0)
-)
-
-fig = px.imshow(
-    hour_pivot,
-    aspect="auto",
-    title="Activity by Weekday and Hour",
-    labels={
-        "x": "Hour of Day",
-        "y": "Weekday",
-        "color": "Messages"
-    },
-    color_continuous_scale="RdPu"
-)
-
-fig.update_xaxes(
-    tickmode="linear",
-    dtick=1
-)
-
-show_chart(fig, 390)
-
-
-# =====================================================
-# MOST BUSY USERS
-# =====================================================
-
-st.markdown(
-    '<div class="section-title">👥 Most Busy Users</div>',
-    unsafe_allow_html=True
-)
-
-people = filtered[
-    filtered["user"] != "Group Notification"
-]
-
-if people.empty:
-
-    st.info(
-        "No participant messages in this selection."
+    fig.update_layout(
+        template="plotly_white",
+        yaxis_title="Participant"
     )
 
-else:
+    st.plotly_chart(fig, use_container_width=True)
 
-    p1, p2 = st.columns([1.2, 1])
+    st.markdown("### Participant Statistics")
 
-    with p1:
-
-        top_users = (
-            people["user"]
-            .value_counts()
-            .head(15)
-            .sort_values()
-            .reset_index()
+    participant_stats = (
+        filtered_df.groupby("user")
+        .agg(
+            Messages=("message", "count"),
+            Words=("word_count", "sum"),
+            Media=("media_count", "sum"),
+            Links=("link_count", "sum")
         )
-
-        top_users.columns = [
-            "User",
-            "Messages"
-        ]
-
-        fig = px.bar(
-            top_users,
-            x="Messages",
-            y="User",
-            orientation="h",
-            title="Top Participants by Messages",
-            color="Messages",
-            color_continuous_scale="RdPu"
-        )
-
-        show_chart(fig, 440)
-
-
-    with p2:
-
-        top_words_users = (
-            people.groupby("user")["word_count"]
-            .sum()
-            .sort_values(ascending=False)
-            .head(12)
-            .reset_index()
-        )
-
-        top_words_users.columns = [
-            "User",
-            "Words"
-        ]
-
-        fig = px.bar(
-            top_words_users.sort_values("Words"),
-            x="Words",
-            y="User",
-            orientation="h",
-            title="Top Participants by Words",
-            color="Words",
-            color_continuous_scale="RdPu"
-        )
-
-        show_chart(fig, 440)
-
-
-    summary = people.groupby("user").agg(
-
-        Messages=("message", "size"),
-
-        Words=("word_count", "sum"),
-
-        Media=("media_count", "sum"),
-
-        Links=("link_count", "sum")
-
-    ).sort_values(
-        "Messages",
-        ascending=False
-    ).reset_index()
-
-    st.markdown("#### Participant Summary")
+        .sort_values("Messages", ascending=False)
+        .reset_index()
+    )
 
     st.dataframe(
-        summary,
+        participant_stats,
         use_container_width=True,
         hide_index=True
     )
 
 
-# =====================================================
-# WORD CLOUD
-# =====================================================
+# =========================================================
+# WORDS & EMOJIS PAGE
+# =========================================================
 
-st.markdown(
-    '<div class="section-title">☁️ Word Cloud</div>',
-    unsafe_allow_html=True
-)
+elif page == "Words & Emojis":
 
-words = get_words(filtered)
+    st.markdown(
+        '<div class="section-title">📝 Word Analysis</div>',
+        unsafe_allow_html=True
+    )
 
-render_wordcloud(words)
+    common_words = get_common_words(
+        filtered_df["message"]
+    )
 
+    if common_words:
 
-# =====================================================
-# COMMON WORDS AND EMOJI ANALYSIS
-# =====================================================
-
-w1, w2 = st.columns(2)
-
-with w1:
-
-    st.markdown("#### 🔤 Most Common Words")
-
-    common = Counter(words).most_common(20)
-
-    if common:
-
-        common_df = pd.DataFrame(
-            common,
+        words_df = pd.DataFrame(
+            common_words,
             columns=["Word", "Count"]
-        ).sort_values("Count")
+        )
 
         fig = px.bar(
-            common_df,
+            words_df.sort_values("Count"),
             x="Count",
             y="Word",
             orientation="h",
-            title="Top 20 Words",
+            title="Most Common Words",
             color="Count",
-            color_continuous_scale="RdPu"
+            color_continuous_scale=["#FFCCCC", "#FF0000"]
         )
 
-        show_chart(fig, 480)
+        fig.update_layout(template="plotly_white")
 
-    else:
-
-        st.info("No common words found.")
-
-
-with w2:
-
-    st.markdown("#### 😍 Emoji Analysis")
-
-    emoji_counts = get_emoji_counts(filtered)
-
-    if emoji_counts:
-
-        emoji_df = pd.DataFrame(
-            emoji_counts.most_common(20),
-            columns=["Emoji", "Count"]
-        )
-
-        fig = px.pie(
-            emoji_df.head(8),
-            names="Emoji",
-            values="Count",
-            title="Most Used Emojis",
-            hole=0.5
-        )
-
-        show_chart(fig, 340)
+        st.plotly_chart(fig, use_container_width=True)
 
         st.dataframe(
-            emoji_df,
+            words_df,
+            use_container_width=True,
+            hide_index=True
+        )
+
+    else:
+        st.info("Not enough text messages to analyze words.")
+
+    # Emoji analysis
+    st.markdown(
+        '<div class="section-title">😀 Emoji Analysis</div>',
+        unsafe_allow_html=True
+    )
+
+    try:
+
+        import emoji
+
+        emoji_counter = Counter()
+
+        for message in filtered_df["message"]:
+
+            for character in str(message):
+
+                if character in emoji.EMOJI_DATA:
+                    emoji_counter[character] += 1
+
+        if emoji_counter:
+
+            emoji_df = pd.DataFrame(
+                emoji_counter.most_common(15),
+                columns=["Emoji", "Count"]
+            )
+
+            fig = px.bar(
+                emoji_df,
+                x="Emoji",
+                y="Count",
+                title="Most Used Emojis",
+                color="Count",
+                color_continuous_scale=["#FFCCCC", "#FF0000"]
+            )
+
+            fig.update_layout(template="plotly_white")
+
+            st.plotly_chart(fig, use_container_width=True)
+
+            st.dataframe(
+                emoji_df,
+                use_container_width=True,
+                hide_index=True
+            )
+
+        else:
+            st.info("No emojis found in the selected messages.")
+
+    except ImportError:
+        st.info(
+            "Install the emoji package to enable emoji analysis."
+        )
+
+
+# =========================================================
+# MESSAGE EXPLORER PAGE
+# =========================================================
+
+elif page == "Message Explorer":
+
+    st.markdown(
+        '<div class="section-title">🔎 Search Messages</div>',
+        unsafe_allow_html=True
+    )
+
+    search_text = st.text_input(
+        "Search for a word or phrase",
+        placeholder="Example: hello, meeting, good morning..."
+    )
+
+    if search_text:
+
+        search_results = filtered_df[
+            filtered_df["message"].str.contains(
+                search_text,
+                case=False,
+                na=False,
+                regex=False
+            )
+        ]
+
+        st.success(
+            f"Found {len(search_results):,} matching messages."
+        )
+
+        st.dataframe(
+            search_results[
+                ["date_time", "user", "message"]
+            ],
             use_container_width=True,
             hide_index=True
         )
 
     else:
 
-        st.info(
-            "No emojis found in the selected messages."
-        )
+        st.info("Enter a word or phrase to search the conversation.")
 
+    st.markdown("### Recent Messages")
 
-# =====================================================
-# SEARCH MESSAGES
-# =====================================================
-
-st.markdown(
-    '<div class="section-title">💬 Search Messages</div>',
-    unsafe_allow_html=True
-)
-
-query = st.text_input(
-    "Search message text",
-    placeholder="Search for a word, phrase or link..."
-)
-
-message_view = filtered.copy()
-
-if query:
-
-    message_view = message_view[
-        message_view["message"].str.contains(
-            query,
-            case=False,
-            na=False,
-            regex=False
-        )
-    ]
-
-st.caption(
-    f"{len(message_view):,} matching messages"
-)
-
-show_cols = [
-    "date",
-    "user",
-    "message",
-    "message_type",
-    "word_count",
-    "media_count",
-    "link_count"
-]
-
-st.dataframe(
-    message_view[show_cols].sort_values(
-        "date",
+    recent_messages = filtered_df.sort_values(
+        "date_time",
         ascending=False
-    ),
-    use_container_width=True,
-    hide_index=True,
-    height=430
-)
+    ).head(100)
 
-
-# =====================================================
-# DOWNLOAD CSV FILES
-# =====================================================
-
-st.markdown("---")
-
-x1, x2 = st.columns(2)
-
-with x1:
-
-    st.download_button(
-        "⬇️ Download All Chat Data (CSV)",
-
-        full_df.to_csv(
-            index=False
-        ).encode("utf-8-sig"),
-
-        "whatsapp_all_messages.csv",
-
-        "text/csv",
-
-        use_container_width=True
+    st.dataframe(
+        recent_messages[
+            ["date_time", "user", "message"]
+        ],
+        use_container_width=True,
+        hide_index=True
     )
 
 
-with x2:
-
-    st.download_button(
-        "⬇️ Download Filtered Data (CSV)",
-
-        filtered.to_csv(
-            index=False
-        ).encode("utf-8-sig"),
-
-        "whatsapp_filtered_messages.csv",
-
-        "text/csv",
-
-        use_container_width=True
-    )
-
-
-# =====================================================
-# FOOTER
-# =====================================================
+# =========================================================
+# DOWNLOAD SECTION
+# =========================================================
 
 st.markdown("---")
 
 st.markdown(
-    """
-    <center>
-        <p style="color:#c02670;font-weight:700;">
-            💗 WhatsApp Analytics Pro
-        </p>
-        <p style="color:#95677d;font-size:13px;">
-            Conversation Intelligence Dashboard
-        </p>
-    </center>
-    """,
+    '<div class="section-title">⬇️ Download Your Analysis</div>',
     unsafe_allow_html=True
 )
+
+download_col1, download_col2 = st.columns(2)
+
+with download_col1:
+
+    csv_data = filtered_df.to_csv(
+        index=False
+    ).encode("utf-8-sig")
+
+    st.download_button(
+        label="📥 Download Messages CSV",
+        data=csv_data,
+        file_name="whatsapp_messages_analysis.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
+
+with download_col2:
+
+    stats_data = (
+        filtered_df.groupby("user")
+        .agg(
+            Messages=("message", "count"),
+            Words=("word_count", "sum"),
+            Media=("media_count", "sum"),
+            Links=("link_count", "sum")
+        )
+        .reset_index()
+        .to_csv(index=False)
+        .encode("utf-8-sig")
+    )
+
+    st.download_button(
+        label="📊 Download Participant Statistics",
+        data=stats_data,
+        file_name="whatsapp_participant_statistics.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
+
+
+# =========================================================
+# FOOTER
+# =========================================================
+
+st.markdown("""
+<div class="footer">
+    <h3>💬 WhatsApp Analytics Pro</h3>
+    <p>Turn your conversations into meaningful insights.</p>
+    <p>Built with Python · Streamlit · Plotly</p>
+</div>
+""", unsafe_allow_html=True)
